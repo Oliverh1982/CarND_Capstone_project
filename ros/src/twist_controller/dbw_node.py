@@ -80,7 +80,7 @@ class DBWNode(object):
         self.angular_vel = None
         self.timestamp = 0.
         self.throttle = self.steering = self.brake = 0
-        rospy.loginfo("DBW init finished")
+        # rospy.loginfo("DBW init finished")
         self.loop()
 
     def loop(self):
@@ -100,35 +100,36 @@ class DBWNode(object):
             
             if not None in (self.current_vel_lin_x, self.current_vel_ang_z, self.target_vel_lin_x, self.target_vel_ang_z):
                 #self.throttle, self.brake, self.steering = self.controller.control(self.current_vel, self.dbw_enabled, self.linear_vel, self.angular_vel)
-                rospy.loginfo("If not None in self.current_vel_lin_x, ... entered")
+                # rospy.loginfo("If not None in self.current_vel_lin_x, ... entered")
                 self.throttle = 0.
                 self.brake = 0.
                 self.steering = 0.
                 self.dbw_enabled = 1
             #else:
-                #rospy.loginfo("Current v_x: %.2f, Target v_x: %.2f, // Current yaw: %.2f, Target yaw: %.2f", self.current_vel_lin_x, self.target_vel_lin_x, self.current_vel_ang_z, self.target_vel_ang_z)
+                #rospy.loginfo("Current v_x: %.2f, Target v_x: %.2f, // Current yaw: %.2f, Target yaw: %.2f", 
+                # self.current_vel_lin_x, self.target_vel_lin_x, self.current_vel_ang_z, self.target_vel_ang_z)
                 
             # Get current timestamp and calculate delta time   
             current_timestamp = rospy.get_time()
-            self.delta_t = current_timestamp - self.timestamp            
-            rospy.loginfo("current_timestamp: %.2f, last_timestamp: %.2f, delta_t: %.2f", current_timestamp, self.timestamp, self.delta_t)
+            delta_t = current_timestamp - self.timestamp           
+            #rospy.loginfo("current_timestamp: %.2f, last_timestamp: %.2f, delta_t: %.2f", current_timestamp, self.timestamp, delta_t)
             self.timestamp = current_timestamp
             
             # Just execute controller and publish if Drive by Wire is enabled
             if self.dbw_enabled:
-                rospy.loginfo("If dbw_enabled entered")
+                #rospy.loginfo("If dbw_enabled entered")
                 self.throttle, self.brake, self.steering = self.controller.control(self.current_vel_lin_x,
                         self.current_vel_ang_z, 
                         self.target_vel_lin_x,
                         self.target_vel_ang_z,
                         self.dbw_enabled,
-                        self.delta_t)
+                        delta_t)
                 self.publish(self.throttle, self.brake, self.steering)
-                rospy.loginfo("If dbw_enabled finished")
+                #rospy.loginfo("If dbw_enabled finished")
                 
             rate.sleep()
-            rospy.loginfo("While Loop end")
-        rospy.loginfo("Loop function finished")
+            #rospy.loginfo("While Loop end")
+        #rospy.loginfo("Loop function finished")
             
     def dbw_enabled_cb(self, msg):
         rospy.loginfo("DBW_cb started")
@@ -136,22 +137,22 @@ class DBWNode(object):
         rospy.loginfo("DBW_cb finished")
         
     def twist_cb(self, msg):
-        rospy.loginfo("Twist_cb started")
+        #rospy.loginfo("Twist_cb started")
         self.target_vel_lin_x = msg.twist.linear.x
         self.target_vel_ang_z = msg.twist.angular.z
-        rospy.loginfo("target_vel_lin_x: %.2f, target_vel_ang_z: %.2f", self.target_vel_lin_x, self.target_vel_ang_z)
-        rospy.loginfo("Twist_cb finished")
+        #rospy.loginfo("target_vel_lin_x: %.2f, target_vel_ang_z: %.2f", self.target_vel_lin_x, self.target_vel_ang_z)
+        #rospy.loginfo("Twist_cb finished")
         
     def velocity_cb(self, msg):
-        rospy.loginfo("Velocity_cb started")
+        #rospy.loginfo("Velocity_cb started")
         self.current_vel_lin_x = msg.twist.linear.x
         self.current_vel_ang_z = msg.twist.angular.z
-        rospy.loginfo("current_vel_lin_x: %.2f, current_vel_ang_z: %.2f", self.current_vel_lin_x, self.current_vel_ang_z)
-        rospy.loginfo("Velocity_cb finished")
+        #rospy.loginfo("current_vel_lin_x: %.2f, current_vel_ang_z: %.2f", self.current_vel_lin_x, self.current_vel_ang_z)
+        #rospy.loginfo("Velocity_cb finished")
         
     def publish(self, throttle, brake, steer):
-        rospy.loginfo("Publish function started")
-        rospy.loginfo("CRTL Throttle : %.2f, Brake : %.2f, Steer : %.2f", throttle, brake, steer)
+        # rospy.loginfo("Publish function started")
+        # rospy.loginfo("CRTL Throttle : %.2f, Brake : %.2f, Steer : %.2f", throttle, brake, steer)
         
         tcmd = ThrottleCmd()
         tcmd.enable = True
@@ -169,7 +170,7 @@ class DBWNode(object):
         bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
         bcmd.pedal_cmd = brake
         self.brake_pub.publish(bcmd)
-        rospy.loginfo("Publish function finished")
+        # rospy.loginfo("Publish function finished")
 
 
 if __name__ == '__main__':

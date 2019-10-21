@@ -6,10 +6,12 @@ import rospy
 import datetime
 
 class TLClassifier(object):
-    def __init__(self):
+    def __init__(self, is_real_site):
         #TODO load classifier
-        PATH_TO_GRAPH = 'light_classification/model/frozen_inference_graph_sim.pb'
-	#PATH_TO_GRAPH = 'light_classification/model/frozen_inference_graph_real.pb'
+        if is_real_site:
+            PATH_TO_GRAPH = 'light_classification/model/frozen_inference_graph_real.pb'
+        else:
+            PATH_TO_GRAPH = 'light_classification/model/frozen_inference_graph_sim.pb'
   
         self.graph = tf.Graph()
         self.threshold = .5
@@ -47,24 +49,24 @@ class TLClassifier(object):
                 feed_dict={self.image_tensor: img_expand})
             end = datetime.datetime.now()
             c = end - start
-            print(c.total_seconds())
+            rospy.loginfo("Light classification took: %.2f", c.total_seconds())
 
         boxes = np.squeeze(boxes)
         scores = np.squeeze(scores)
         classes = np.squeeze(classes).astype(np.int32)
 
-        print('SCORES: ', scores[0])
-        print('CLASSES: ', classes[0])
+        rospy.loginfo("SCORES: %.2f", scores[0])
+        rospy.loginfo("CLASSES: %.2f", classes[0])
 
         if scores[0] > self.threshold:
             if classes[0] == 1:
-                print('GREEN')
+                rospy.loginfo("Light is GREEN")
                 return TrafficLight.GREEN
             elif classes[0] == 2:
-                print('RED')
+                rospy.loginfo("Light is RED")
                 return TrafficLight.RED
             elif classes[0] == 3:
-                print('YELLOW')
+                rospy.loginfo("Light is YELLOW")
                 return TrafficLight.YELLOW
 
         return TrafficLight.UNKNOWN

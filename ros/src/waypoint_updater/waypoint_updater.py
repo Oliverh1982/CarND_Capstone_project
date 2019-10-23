@@ -195,7 +195,7 @@ class WaypointUpdater(object):
                         
                 else:
                     # Vehicle in Standstill Case
-                    if do_not_brake == 1 and distance_along_trace > 3:
+                    if do_not_brake == 1 and distance_along_trace > 1:
                         # Acceleration needed
                         v_current_wp = 0.1
                         rospy.loginfo("Standstill & Acceleration needed")

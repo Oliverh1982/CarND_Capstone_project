@@ -54,6 +54,7 @@ class Controller(object):
         steering_max = 0.5*max_steer_angle
         steering_min = -0.5*max_steer_angle
         
+        
         self.last_steering = 0.0
         self.last_target_vel_ang_z = 0.0
         self.last_brake_torque = 0.0
@@ -64,6 +65,16 @@ class Controller(object):
         self.yaw_controller = YawController(wheel_base, steer_ratio, 0.1, max_lat_accel, max_steer_angle)
         
         self.max_total_steering = max_steer_angle
+        
+        # Brake Controller Initialization:
+        brake_kp = 800
+        brake_ki = 150
+        brake_kd = 300
+        brake_min = 0.0
+        brake_max = 1500
+        
+        # Brake Controller
+        self.brake_controller = PID(brake_kp, brake_ki, brake_kd, brake_min, brake_max)
 
         # rospy.loginfo("Controller init finished")
         pass
@@ -81,6 +92,7 @@ class Controller(object):
         if dbw_enabled == 0:
             self.throttle_controller.reset()
             self.steering_controller.reset()
+            self.brake_controller.reset()
             return throttle, brake_torque, steering # initial values, all 0
         
         # LowPassFilter current linear velocity
@@ -95,31 +107,55 @@ class Controller(object):
         #if current_vel_lin_x is None:
             #rospy.logerr("Error: current_vel_lin_x is None")
 
-        target_vel_lin_x = min(speed_limit-0.5, target_vel_lin_x)    
-        lin_x_vel_error = target_vel_lin_x - current_vel_lin_x        
+        target_vel_lin_x = min(speed_limit-0.5, target_vel_lin_x)
+        target_vel_lin_x_throttle = target_vel_lin_x - 0.5
+        lin_x_vel_error = target_vel_lin_x - current_vel_lin_x       
+        lin_x_vel_error_throttle = target_vel_lin_x_throttle - current_vel_lin_x
         # rospy.loginfo("Linear speed error: %.2f, Linear speed target: %.2f, Linear speed current: %.2f", lin_x_vel_error, target_vel_lin_x, current_vel_lin_x)
         
-        if lin_x_vel_error >= 0:
+        if lin_x_vel_error >= 1:
             self.last_brake_torque = 0 
+            self.brake_controller.reset()
             
         # Calculate Throttle Control Value
-        throttle = self.throttle_controller.step(lin_x_vel_error, delta_t)
+        throttle = self.throttle_controller.step(lin_x_vel_error_throttle, delta_t)
         self.last_vel = current_vel_lin_x
+        
+        # Calculate Brake Control Value
+        if lin_x_vel_error > 0:
+            brake_lin_x_vel_error = 0;
+        else:
+            brake_lin_x_vel_error = lin_x_vel_error*-1
+            
+        brake_torque = self.brake_controller.step(brake_lin_x_vel_error, delta_t)
+        brake_torque = min(brake_torque, self.last_brake_torque+25)
+        rospy.loginfo("lin_x_vel_error: %.2f, brake_lin_x_vel_error: %.2f, brake_torque: %.2f, self.last_brake_torque: %.2f", lin_x_vel_error, brake_lin_x_vel_error, brake_torque, self.last_brake_torque)
+        if brake_torque > 100:
+            self.throttle_controller.reset()
+        #self.last_brake_torque = brake_torque 
         
         # If car becomes to fast (tolerance 0.2 m/s) or car is really slow
         # then throttle has to be set to 0
-        if current_vel_lin_x > (target_vel_lin_x+0.2) or target_vel_lin_x < 0.1:
+        if current_vel_lin_x > (target_vel_lin_x+0.4) or target_vel_lin_x < 0.1:
             throttle = 0.0
         
         # Calculate Brake Value and potentially overwrite tharottle value to 0
-        if current_vel_lin_x < 0.1 and target_vel_lin_x == 0.0:
+        if current_vel_lin_x < 0.1 and target_vel_lin_x < 0.01:
             # rospy.loginfo("Vehicle in standstill and target velocity = 0 --> Brake against Creep needed")
             # Vehicle is in standstill (<0.1 m/s) and shall reside there, apply brake and release throttle
             throttle = 0.0
             brake_torque = brake_torque_to_keep_zero_speed # this torque is needed to brake against the creep and potential slopes due to automatic transmission
-        elif lin_x_vel_error < 0 and throttle < 0.1:
+            brake_torque = min(brake_torque, self.last_brake_torque+25)
+            self.last_brake_torque = brake_torque 
+        elif lin_x_vel_error < 0 and throttle < 0.2:
             # Set speed is smaller than current speed and throttle is just a little bit engaged
             # rospy.loginfo("Braking needed!")
+            #brake_torque = self.brake_controller.step(lin_x_vel_error, delta_t)
+            #rospy.loginfo("lin_x_vel_error: %.2f, brake_torque: %.2f, self.last_brake_torque: %.2f", lin_x_vel_error, brake_torque, self.last_brake_torque)
+            #brake_torque = min(brake_torque, self.last_brake_torque+25)
+            self.last_brake_torque = brake_torque 
+            
+            """
             throttle = 0.0
             decel_req = min(abs(lin_x_vel_error) / (1.3 / current_vel_lin_x), abs(self.decel_limt))
             rospy.loginfo("decel_req: %.2f, self.decel_limt: %.2f", decel_req, abs(self.decel_limt))
@@ -128,6 +164,8 @@ class Controller(object):
             brake_torque = min(brake_torque, self.last_brake_torque+25)
             rospy.loginfo("self.last_brake_torque: %.2f, brake_torque: %.2f", self.last_brake_torque, brake_torque)
             self.last_brake_torque = brake_torque
+            """
+            
         
         # Calculate  steering value with Yaw Controller
         # rospy.loginfo("Current linear speed: %.2f, Target linear speed: %.2f", current_vel_lin_x, target_vel_lin_x)
@@ -166,4 +204,5 @@ class Controller(object):
         #rospy.loginfo("Steering yaw controller: %.2f, steering pid controller: %.2f, total steering: %.2f", steering_yaw_controller, steering_pid_controller, steering)
 
         #rospy.loginfo("Control function finished")
+        rospy.loginfo("throttle: %.2f, brake_torque: %.2f, steering: %.2f", throttle, brake_torque, steering)
         return throttle, brake_torque, steering

@@ -19,7 +19,7 @@ The system consits on 4 smaller subsystems: Perception subsystem, planning subsy
 
 The following image ilustrates the subsystems, nodes and the connection between them through topics:
 
-![](./ReportImages/final-project-ros-graph-v2.png) 
+![](./ReportImg/final-project-ros-graph-v2.png) 
 
 #### Control subsystem
 This subsystem is the one closer to the hardware and is the one responsible of giving control commands to the car actuators. These commands are the steering angle, the throttle and the brake. It consists on two nodes, the DBW Node written by us in Python and the Waypoint Follower written by [Autoware](https://www.autoware.org/) in C++.
@@ -46,7 +46,7 @@ As explained before, the task of this package is to convert the desired linear a
 #### Control of linear velocity
 The linear velocity is controlled using two PID controllers, one for the throttle and one for the brake. The control strategy is relatively simple, the throttle PID controller is used when the target linear velocity is higher or equal than the current speed and the brake controller on the contrary case. In the case the car is stopped and that condition is wanted (if target and current linear velocities are near to 0) a constant brake torque is applied that avoids the car to roll. The following diagram ilustrates this control loop:
 
-![](./ReportImages/Control_diagram_lin_speed.png)
+![](./ReportImg/Control_diagram_lin_speed.png)
 
 #### Control of angular velocity
 The target angular velocity is the one needed so the car stays on the trajectory defined by the waypoints and it is controlled using a combination between a specialized yaw controller and a PID controller. 
@@ -72,7 +72,7 @@ In the equation it can be seen that the yaw controller determines the sign of th
 
 The following diagram ilustrates the angular velocity control:
 
-![](./ReportImages/Control_diagram_ang_speed.png)
+![](./ReportImg/Control_diagram_ang_speed.png)
 
 
 The linear speed SP and angular speed SP (Setpoint) are received from the waypoint follower node within the topic "twist_cmd". The throttle, brake and steering commands are sent to the car hardware interface software or to the simulator through the topics "vehicle/throttle_cmd", "vehicle/brake_cmd" and "vehicle/steering_cmd".
@@ -127,10 +127,10 @@ Once the model finds the traffic lights and provides the boundary boxes, the tra
 Althought the "ssdlite_mobilenet_v2_coco" performs good for simulator, it didn't perform good enough for real world test. To improve the performance, another model "ssd_mobilenet_v1_coco_2017_11_17" was used and was retrained on a dataset kindly shared [here](https://drive.google.com/file/d/0B-Eiyn-CUQtxdUZWMkFfQzdObUE/view). Also the repository of [coldKnight](https://github.com/coldKnight/TrafficLight_Detection-TensorFlowAPI) explaining how to re-train the models was used for this purpose. After training, the result was quite satisfactory. 
 
 Here an example on the simulator can be seen:
-![](./ReportImages/Sim_1.png)
+![](./ReportImg/Sim_1.png)
 
 And an example on the real world:
-![](./ReportImages/Real_1.png)
+![](./ReportImg/Real_1.png)
 
 ### Results and conclusions
 This project covers contents discussed along the nanodegree on individual projects like computer vision, deep learning, trajectory generation and control and puts everything together using ROS in order to control a real autonomous vehicle. Using ROS makes the integration of all different software modules easier, even if they are programmed on different languages like Python or C++.  
